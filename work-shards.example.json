@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "profiles": {
+    "dsh-project": {
+      "adapter": "dsh",
+      "workspace": "${WORK_SHARD_WORKSPACE}",
+      "session_id": "${WORK_SHARD_SESSION}",
+      "provider": "${WORK_SHARD_PROVIDER}",
+      "model": "${WORK_SHARD_MODEL}",
+      "patch": "${WORK_SHARD_PATCH}"
+    }
+  },
+  "sets": {"daily": ["dsh-project"]}
+}

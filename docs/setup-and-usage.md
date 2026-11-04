@@ -1,46 +1,80 @@
-# Setup and usage boundaries
+# Setup and usage
 
-Recorded 4 November 2026. This package presents the demonstrated serving integration and its evidence. It does not install a service, start a model, create an automation or supply a general Work Shards scheduler.
+The adopted serving configuration and the Work Shards helper are separate parts of TensorShard. The helper uses an existing application and model endpoint. It does not install or reload the inference engine.
 
-## What is available here
+## Work Shards quickstart
 
-| Item | Location | Use |
-|---|---|---|
-| Recorded configuration and pins | [recorded-recipe.yaml](recorded-recipe.yaml) | Inspect the candidate geometry, model/build identities and environment values |
-| Integration notes | [implementation.md](implementation.md) | Understand the unequal-owner and persistent-spill work |
-| Curated results | [evidence.md](evidence.md), [evidence-summary.json](evidence-summary.json) | Read measured outcomes, context sizes, acceptance and limits |
-| Work Shards direction | [work-shards.md](work-shards.md) | Understand manual selection, saved sets and planned preparation |
+Requirements: Python 3.10 or newer. The built-in DSH adapter uses the SDK interface verified with installed **DSH 0.2.1-rc.5**. DSH must already have a working provider configuration and a saved session for the intended workspace.
 
-The source implementation uses a pinned TensorFold build and modified two-rank recipe. The image digests identify the builds that produced the evidence; they are not registry download URLs. The portable patch/build bundle, deployment launcher and model weights are not distributed by this documentation package. Internal operating scripts and machine-specific paths have deliberately not been copied here.
-
-## Recorded deployment prerequisites
-
-The demonstrated configuration used two 128 GB GB10-class DGX Sparks, tensor parallelism across two ranks, CUDA, an RDMA interconnect and local NVMe storage on both ranks. It used the pinned DeepSeek-V4.1-Flash-1017 EXL3 checkpoint and overlay in the recipe. Exact model/build identity and compatible checkpoint interpretation matter to reuse.
-
-The upstream starting point is [Mia's pinned two-Spark recipe](https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-1017-2x-DGX-Sparks/tree/f424dfe3b14ac9f02fe12f5777c852dba967a79a). Its instructions describe that upstream version. Applying the TensorShard environment values to an unmodified upstream engine is not evidence that unequal ownership or the combined spill path is supported; the recorded source integration is part of the configuration.
-
-There is consequently no invented install or launch command in this README. The archived recipe is a configuration record rather than an executable manifest. Its readiness entries describe the historical qualification, not a request to repeat those experiments.
-
-## Demonstrated DSH usage
-
-The application-level result used installed **DSH 0.2.1-rc.5** with native tools. The initial headless tasks created actual saved sessions in isolated workspaces. The one-shot headless runner did not expose the required resume path, so a small controller used the installed SDK JSON-RPC interface for subsequent turns:
-
-```text
-initialize
-session/resume   — existing session ID, original workspace
-session/prompt   — new readiness or work request
-session/wait     — wait for the application turn to finish
-shutdown
+```sh
+python3 work_shards.py init
 ```
 
-The controller selected the existing native model route. Request capture explicitly set thinking off, greedy sampling and a 4,096-token output cap for the comparison. The real DSH application retained its model loop, tools and persisted history. An independent checker confirmed the generated source against frozen tests.
+This creates `work-shards.local.json` from the included example without overwriting an existing file. That file and `.work-shards/` receipts are ignored by Git. Keep your real workspace, session IDs and application configuration there.
 
-The warm comparison excluded the initial coding tasks and the eight short readiness replies. Only the subsequent eight revisions were timed. Resumption therefore meant continuity of real application sessions, not sending a fabricated transcript through a separate model loop. See [the recorded method and results](evidence.md).
+The example's environment placeholders are:
 
-This sequence documents a supported building block. It is not a public CLI quickstart for every DSH installation, a new prefill-only API, or a claim that the other proposed application adapters are implemented.
+| Variable | Value supplied locally |
+|---|---|
+| `WORK_SHARD_WORKSPACE` | The original session's existing project directory |
+| `WORK_SHARD_SESSION` | Its saved DSH session ID |
+| `WORK_SHARD_PROVIDER` | The provider ID already configured in DSH |
+| `WORK_SHARD_MODEL` | The model ID for that provider |
+| `WORK_SHARD_PATCH` | The existing DSH provider patch file |
 
-## Day-to-day intent
+You can replace placeholders with local values in the ignored JSON file. Secrets belong in the application's normal credential configuration or environment, not in the public example. Use the same provider settings, tools and session store as the application you intend to return to.
 
-Use saved application sessions and meaningful project context. Retain source files and conversations in their normal stores independently of KV caching. Treat a compatible resident prefix as the cheapest return path, a committed NVMe checkpoint as a second path, and recomputation as necessary when compatible cached state is unavailable.
+```sh
+python3 work_shards.py list
+python3 work_shards.py check --set daily --dry-run
+python3 work_shards.py check --set daily
+python3 work_shards.py prepare --set daily
+python3 work_shards.py status
+```
 
-The proposed Work Shards helper would coordinate that preparation across selected profiles while preserving room for growth and ad-hoc work. A 05:00 preparation time remains an example product experience. This package does not create that schedule or change a live serving configuration.
+`check` resumes and closes the DSH session without a model prompt. `prepare` resumes it, verifies its workspace, requests a short readiness turn and waits for completion. That turn appends to the saved conversation and can incur a cold prefill if no compatible cached prefix remains. The default prompt requests no tools or edits; the application's own permission policy still applies.
+
+Choose individual profiles with `prepare profile-name`, or define additional arrays of profile names in `sets`. Selection is deduplicated and profiles run sequentially. Failures are recorded and remaining selected profiles can continue; a failed set returns a nonzero exit code. `--config` selects another local configuration file:
+
+```sh
+python3 work_shards.py --config work-shards.local.json prepare --set daily
+```
+
+A local receipt is evidence of an operation at a time, not a live cache-residency monitor. Status does not promise that the context is still warm. The helper does not replace conversations or source backups with KV snapshots.
+
+## Profile fields
+
+| Field | Purpose |
+|---|---|
+| `adapter` | `dsh` for built-in SDK resumption, or `command` for a supplied application command |
+| `workspace` | Existing original workspace; DSH's stored directory must match |
+| `session_id` | Existing DSH saved-session identity; a missing session fails rather than creating a replacement |
+| `provider`, `model` | Existing DSH route selection |
+| `command` | DSH executable/SDK arguments, or an explicit application command as an argv array |
+| `patch` | Optional DSH patch file appended with `--patch` |
+| `prompt` | Optional DSH preparation instruction |
+| `max_tokens` | DSH output cap, default 256; existing route reasoning defaults apply |
+| `timeout_s` | Bounded preparation timeout, default 120 seconds |
+| `env` | Optional process environment values; normal environment is inherited |
+| `check_command` | Separate command-adapter check; absence means check is unsupported |
+
+The command adapter executes an argv array directly, without a shell. It runs the real application's command in its selected workspace. It does not invent resume flags or turn an unrelated API request into an application integration. A successful command means that command completed; the application must provide its own preparation and session semantics. Paths and environment substitutions are resolved locally.
+
+## Serving configuration
+
+The [adopted recipe](recorded-recipe.yaml) records C12, the 4,198,400-position shared pool, 513/1,537-block ownership, the 1,048,576-token request limit and separate 4 GiB NVMe stores. The project owner selected this configuration for continued use on 4 November 2026.
+
+The [integration notes](implementation.md) explain the unequal-owner allocation, movement, kernels and persistent-spill work. Exact image and source hashes identify the measured builds. The public repository does not yet distribute the engine build/patch bundle, deployment launcher or model weights. That distribution boundary does not change the adopted configuration's status.
+
+[Mia's pinned recipe](https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-1017-2x-DGX-Sparks/tree/f424dfe3b14ac9f02fe12f5777c852dba967a79a) documents the upstream starting point. Applying only TensorShard's environment values to an unmodified upstream build does not reproduce the unequal-owner integration.
+
+## Verification
+
+Run the helper's focused offline checks without a model request:
+
+```sh
+python3 -m unittest -v test_work_shards.py
+python3 work_shards.py --help
+```
+
+The tests use a temporary SDK fixture and verify selection, session/workspace continuity, timeouts, failures and receipts. The separate installed-DSH check is documented in the [completion report](CR-001-work-shards-helper.md). The prior [performance results](evidence.md) remain unchanged; packaging the helper is not a new throughput claim.

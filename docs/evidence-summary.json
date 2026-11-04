@@ -1,6 +1,6 @@
 {
   "recorded_date": "2026-11-04",
-  "scope": "Curated excerpts for the recorded TensorShard serving candidate; Work Shards is planned.",
+  "scope": "Curated excerpts for the adopted TensorShard serving configuration. Performance measurements predate the small Work Shards helper packaging.",
   "thinking_disabled_for_generation_rows": true,
   "results": {
     "writing": {

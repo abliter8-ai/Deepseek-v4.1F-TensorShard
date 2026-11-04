@@ -1,0 +1,4 @@
+work-shards.local.json
+work-shards.*.local.json
+.work-shards/
+__pycache__/

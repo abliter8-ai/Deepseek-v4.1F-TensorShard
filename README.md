@@ -8,8 +8,8 @@
 
 <p>
 <img src="https://img.shields.io/badge/hardware-2%C3%97_DGX_Spark-FF093A?style=for-the-badge&labelColor=0D0D0D" alt="Hardware: two DGX Sparks">
-<img src="https://img.shields.io/badge/serving_recipe-recorded_candidate-FF093A?style=for-the-badge&labelColor=0D0D0D" alt="Serving recipe: recorded candidate">
-<img src="https://img.shields.io/badge/Work_Shards-planned-FF093A?style=for-the-badge&labelColor=0D0D0D" alt="Work Shards: planned">
+<img src="https://img.shields.io/badge/serving_recipe-adopted-FF093A?style=for-the-badge&labelColor=0D0D0D" alt="Serving recipe: adopted">
+<img src="https://img.shields.io/badge/Work_Shards-helper_included-FF093A?style=for-the-badge&labelColor=0D0D0D" alt="Work Shards: helper included">
 </p>
 
 [Project](https://github.com/abliter8-ai/Deepseek-v4.1F-TensorShard) · [Working day](#overview) · [Memory tiers](#how-it-works) · [Work Shards](#work-shards) · [Getting started](#how-to-start) · [Evidence](#evidence)
@@ -20,7 +20,7 @@
 
 **TensorShard helps a pair of DGX Sparks retain more agent context and resume work with less repeated prefill.** It combines a tuned TensorFold serving recipe, unequal KV ownership and NVMe-backed restoration to keep a larger working set of local agent histories available.
 
-The serving integration and recorded DSH session resumption are demonstrated. **Work Shards**, the proposed layer for selecting and preparing daily agent contexts, remains planned. This repository packages the recorded configuration, integration notes and curated evidence; it does not yet ship a portable installer or the general preparation helper.
+The C12, worker-heavy, NVMe-backed configuration is **adopted for continued use**. This repository includes **Work Shards**, a small preparation helper for named profiles and saved sets, with a built-in DSH saved-session adapter. The serving recipe, integration notes and measured results sit alongside it. Broader native application integrations and a daily scheduler remain future work.
 
 <a name="overview"></a>
 ## <img src="https://get.abliter8.ai/doc-assets/overview-intro.png" alt="Overview" height="58">
@@ -31,10 +31,33 @@ Repeatedly computing the same prefix adds waiting and consumes capacity that cou
 
 Prewarming moves predictable preparation into quiet periods. Retention and restoration reduce how often it must be repeated. The first computation still costs time; the benefit comes from when it happens and how often it can be reused. Saved conversations remain distinct from the cached computation used to serve them.
 
+### Who this is for
+
+TensorShard is for people who spend a working day in **a couple of code repositories or a handful of recurring agent profiles**. Your agent may carry a large instruction set, tool schemas, project documents and hours of conversation. You want to make an edit, run tests, switch projects, ask an assistant something, then return to the same work without repeatedly rebuilding that history.
+
+Imagine a history that takes **40 seconds to prefill**. That is an illustrative cost, not a new benchmark. You pay it when the compatible history is first prepared. On a later turn, the runtime can reuse the retained computation and process the appended instructions, tool results and conversation. If the compatible checkpoint has left RAM but remains committed on NVMe, it can be restored before continuing. The updated history can be retained and checkpointed for another return, subject to the store's commit and retention policy.
+
+The useful cycle is **prepare → work → append → retain or save → return and resume**. Preparing a saved set before the working day moves that first cost away from the moment you need an answer. Tools and human pauses leave generation slots free; a dormant history need not occupy a slot to remain cached. This buys less waiting and more time doing useful generation, rather than a proportional increase in raw decode speed.
+
+### What changes from the original recipe?
+
+The concrete baseline is the original **C4 / 1,048,576-position deployment**, not a claim about every upstream recipe. Upstream already supplies caching and sharding mechanisms; TensorShard integrates and configures them for this larger retained working set.
+
+| Working-day concern | Original C4 / 1M deployment | Adopted TensorShard configuration |
+|---|---|---|
+| Room for returning histories | One shared 1M-position pool | **4.20M positions**, with more KV placed on the worker |
+| Active requests | Four generation slots | **Twelve slots**; retained histories can outnumber active turns |
+| An older history leaves RAM | A cache miss requires preparation again unless another compatible tier is available | **Integrated NVMe return path** for retained, committed checkpoints |
+| Preparing recurring work | Individual application use pays preparation when requested | **Work Shards** selects saved profiles and prepares them in sequence |
+
+The aim is to pay the large preparation cost **once per compatible retained history**, then pay for appended material and any required restoration. It is not a promise that a session will never prefill again: early prompt edits, compaction, changed tools, incompatible configuration or eviction from both tiers can require recomputation. The measured approximately 196k-token example took **88.37 seconds cold, 1.28 seconds from RAM and 5.19 seconds from disk under load**.
+
+You will benefit most when you revisit substantial, mostly stable contexts across many turns or project switches. Short one-off questions, unrelated prompts and workloads dominated by a single long generation benefit less from retention. The hardware's decode bandwidth is still finite; the gain is doing less repeated preparation during your active day.
+
 <a name="what-it-does"></a>
 ## <img src="https://get.abliter8.ai/doc-assets/features-whatitdoes.png" alt="What it does" height="58">
 
-The recorded candidate uses two 128 GB GB10-class DGX Sparks, TensorFold, and DeepSeek-V4.1-Flash-1017 with the pinned Mia EXL3 EAQ 2.9-bpw checkpoint and Keys attention overlay. Configuration status remains **draft**; the recorded measurements are dated **4 November 2026**.
+The adopted configuration uses two 128 GB GB10-class DGX Sparks, TensorFold, and DeepSeek-V4.1-Flash-1017 with the pinned Mia EXL3 EAQ 2.9-bpw checkpoint and Keys attention overlay. The project owner selected this configuration for continued use on **4 November 2026**, following the recorded qualification. The measurements below retain their original workload limits.
 
 | Recorded capability | Configuration | Working-day benefit |
 |---|---|---|
@@ -70,11 +93,11 @@ The **4.20M pool**, **1M request limit** and **12 active sequences** answer diff
 The **1 GiB prompt-state cache** has a different role from the KV arena; their sizes are not interchangeable token capacity. NVMe holds compatible checkpoints subject to commit, retention, quota and configuration limits. It is not conversation backup or an unlimited archive. Prefix changes, tool changes and compaction can reduce reuse. More retained capacity does not imply a proportional rise in single-stream decode speed.
 
 <a name="work-shards"></a>
-## Work Shards — planned
+## Work Shards
 
 A **Work Shard** is a named agent, project or workspace context you want prepared. It is a logical preparation profile, separate from a physical tensor shard or a rank's KV ownership.
 
-Select a saved set, prepare it now or during a quiet period, and return to those applications when work starts. A proposed 05:00 schedule is an example of the experience, not an installed automation. The helper should reuse compatible resident state, resume saved sessions or restore checkpoints where supported, and refresh only what needs preparation.
+Select named profiles or a saved set and prepare them sequentially with the included [Work Shards helper](work_shards.py). The DSH adapter resumes the same saved session in its original workspace and requests a short readiness reply. The engine reuses compatible RAM prefixes or NVMe checkpoints when available and computes missing context when needed. A 05:00 run remains a scheduling example; the helper does not install a timer.
 
 | Example Work Shard | Intended context |
 |---|---|
@@ -86,14 +109,23 @@ Select a saved set, prepare it now or during a quiet period, and return to those
 | OpenWebUI researcher | The frequently used research agent |
 | OpenWebUI image-prompt writer | The frequently used image-prompt-writing agent |
 
-These seven profiles are an example selection, not a fixed population or a claim that these integrations ship today. Leave capacity for conversation growth and unplanned work. Existing applications keep their loops, tools, retries, transcripts and checks; the helper coordinates preparation and resumption.
+These seven profiles are an example selection. DSH has a built-in adapter; other applications can use an explicitly configured command that prepares their real context. Native Codex, Hermes and OpenWebUI adapters are not bundled. Leave capacity for conversation growth and unplanned work. Existing applications keep their loops, tools, retries, transcripts and checks.
 
-The demonstrated building block is **eight real DSH sessions resumed in their original workspaces to perform checked code revisions**. A general selector, scheduler and integrations across the example applications remain planned. Preparing an unrelated request from concatenated repository files does not automatically warm an application's next turn. [Work Shards design and status](docs/work-shards.md).
+The demonstrated building block is **eight real DSH sessions resumed in their original workspaces to perform checked code revisions**. The helper packages that SDK path with profile selection, saved sets and local completion receipts. A receipt records the last preparation; it does not prove the context is still resident. Preparing an unrelated request from concatenated repository files does not automatically warm an application's next turn. [Work Shards usage and boundaries](docs/work-shards.md).
 
 <a name="how-to-start"></a>
 ## <img src="https://get.abliter8.ai/doc-assets/quickstart.png" alt="How to start" height="58">
 
-Start with the [setup and usage notes](docs/setup-and-usage.md), then the [recorded recipe](docs/recorded-recipe.yaml). They distinguish the demonstrated configuration, the real DSH resume path and what this public package contains.
+The helper requires Python 3.10 or newer and the application it will prepare. Start with `python3 work_shards.py init`, configure the private profile for an existing session, then select a saved set:
+
+```sh
+python3 work_shards.py list
+python3 work_shards.py check --set daily
+python3 work_shards.py prepare --set daily
+python3 work_shards.py status
+```
+
+`check` opens and closes the DSH session without sending a model prompt. `prepare` performs a real application turn and can incur prefill on a cache miss. Local profiles and receipts are ignored by Git. See [setup and usage](docs/setup-and-usage.md) for configuration, command adapters and offline checks.
 
 The image digests are evidence identities, not published image download locations. The [upstream recipe](https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-1017-2x-DGX-Sparks/tree/f424dfe3b14ac9f02fe12f5777c852dba967a79a) describes its own setup; reproducing TensorShard also requires the recorded unequal-owner and spill integration.
 

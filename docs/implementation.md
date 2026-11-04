@@ -1,14 +1,14 @@
 # TensorShard recorded implementation
 
-Status: draft. Recorded 2026-11-04. This checkout is a public-safe descriptive archive, not a launcher or installation package.
+Status: adopted for continued use on 2026-11-04. This document records the serving integration. The repository also includes the small Work Shards helper; a portable engine build and deployment launcher are not bundled.
 
 ## Scope and provenance
 
-The candidate combines the tuned IP-447 worker-heavy layout with the selective combined spill/shard semantics from MiaAI-Lab's pinned 0019 patch. The upstream project and exact revision are recorded in `recorded-recipe.yaml`:
+The adopted configuration combines the tuned IP-447 worker-heavy layout with the selective combined spill/shard semantics from MiaAI-Lab's pinned 0019 patch. The upstream project and exact revision are recorded in `recorded-recipe.yaml`:
 
 https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-1017-2x-DGX-Sparks/tree/f424dfe3b14ac9f02fe12f5777c852dba967a79a
 
-The upstream contribution supplies equal-owner combined spill packing, store/reopen flow and two-rank coordination. The candidate contribution adapts that design to unequal owners `[513,1537]`, preserves the tuned 48-row kernels and C12 controls, binds identity to the complete owner vector, and fixes owned-spill teardown after queued users drain. These are recorded contributions, not claims that the upstream patch natively provides unequal geometry.
+The upstream contribution supplies equal-owner combined spill packing, store/reopen flow and two-rank coordination. The TensorShard contribution adapts that design to unequal owners `[513,1537]`, preserves the tuned 48-row kernels and C12 controls, binds identity to the complete owner vector, and fixes owned-spill teardown after queued users drain. These are recorded contributions, not claims that the upstream patch natively provides unequal geometry.
 
 ## Memory model
 
@@ -32,4 +32,4 @@ Store commits are transactional. Incomplete or cancelled writes are not publisha
 
 ## Compatibility and qualification boundary
 
-The candidate preserves the tuned CUDA/kernel path and 48-row scheduler behavior. The archive records source, image, model, quantization, overlay and environment pins separately so a future launcher can reproduce the identity without copying private deployment details. Readiness requires exact greedy references, both rank identities, owner capacities, commit/restore counters, physical read receipts, memory guards and bounded restore success. The recipe remains `draft`; this document does not claim public adoption, installation, serving, or production qualification.
+The configuration preserves the tuned CUDA/kernel path and 48-row scheduler behavior. The archive records source, image, model, quantization, overlay and environment pins separately so a future launcher can reproduce the identity without copying private deployment details. Readiness requires exact greedy references, both rank identities, owner capacities, commit/restore counters, physical read receipts, memory guards and bounded restore success. The owner selected this qualified configuration for continued use. That decision is recorded as `production` in the recipe. It does not turn the bounded workload results into an all-day guarantee or provide a portable engine installer.

@@ -1,66 +1,60 @@
 # Work Shards
 
-Status: product direction, recorded 4 November 2026. The general selector, scheduler and cross-application adapters are planned. The existing DSH resumption result is a demonstrated building block, not a complete implementation of this design.
+Work Shards is the included preparation helper for TensorShard. It provides named profiles, saved sets, sequential preparation and local receipts. DSH has a built-in saved-session adapter. A command adapter can invoke another application's explicitly configured preparation path. Automatic daily scheduling and additional native adapters are future extensions.
 
-## Prepare useful work before it is needed
+## Pay for the history, then reuse it
 
-A Work Shard names an agent, project or workspace context that the user wants ready. It describes application-level preparation. Physical tensor shards and the head/worker KV ownership split remain runtime concepts.
+A Work Shard names an agent, project or workspace context you want ready. It is separate from a physical tensor shard or the head/worker KV split.
 
-The intended working day begins with familiar coding agents, professional and personal assistants, a researcher and a prompt writer available to resume. Users can switch projects, wait for a tool and return to another agent without repeatedly paying for unchanged context.
+This is useful when you spend the day returning to two code repositories, a research profile and several assistants. Each has instructions, tools, documents and conversation that are expensive to prepare and mostly unchanged between turns. The applications continue their normal work; the helper gives you a small way to prepare their real contexts together.
 
-The initial computation still costs time. Prewarming chooses a quieter time for predictable preparation; retaining RAM state and restoring compatible NVMe checkpoints reduce repeat work. This aims to extract more practical value from two finite, already-owned machines while preserving room for ad-hoc requests.
+For a history with an illustrative 40-second cold prefill, preparation pays that cost before you need an answer. Later turns can reuse the retained prefix and process the appended material. If the history leaves RAM, a retained compatible NVMe checkpoint provides another return path. Updated histories can be retained and committed again under the engine's storage policy. Initial computation has a cost; the benefit is choosing when to pay it and avoiding unnecessary repeats.
 
-People sometimes arrange work around provider usage windows or keep working while a context is warm. Those experiences motivate the design; provider policies differ. Expiry of cached computation is distinct from loss of a saved conversation.
+This is strongest for repeated long-context work. Short unrelated requests and workloads dominated by uninterrupted generation gain less. Cache compatibility, retention and available memory still matter. Compaction, early prompt changes or eviction from both tiers can require preparation again. Saved conversations remain in their application stores independently of cached computation.
+
+## What the helper does
+
+1. Select one or more named profiles, or a saved set.
+2. Validate each selected workspace and adapter configuration.
+3. For DSH, resume the saved session and verify its stored workspace matches the profile.
+4. Request a short readiness turn through DSH's own model and tool loop, then wait for completion. The runtime decides whether to reuse RAM, restore disk or prefill.
+5. Close the client and record the completion time and result. Move to the next profile.
+6. Return to the same application session for normal work.
+
+Profiles are prepared sequentially to avoid an unnecessary burst of competing prefills. Completed preparation releases generation slots; retained histories may remain cached while other requests use those slots. Leave room for growth and ad-hoc work instead of trying to fill the pool.
+
+`check` uses the same DSH resume path but submits no model prompt. It checks session access and workspace continuity; it does not warm the cache. `--dry-run` validates selected local profiles without starting an application.
+
+A **LAST PREPARED** receipt means the preparation operation completed at that time. The helper cannot determine current RAM residency or prove an NVMe checkpoint was committed. It records cache residency as unknown. It does not skip preparation merely because an old receipt exists. It does not expose a prefill-only API, guarantee zero output, pin contexts or preempt running work.
 
 ## Example daily set
 
 | Profile | Application and intended context |
 |---|---|
-| Codex — `abliter8-fleet-cluster` | Codex app, selected local model, repository workspace and saved session where applicable |
+| Codex — `abliter8-fleet-cluster` | Codex app, selected local model, repository workspace and saved session |
 | DeepSeek harness — `rpstudios` | DSH, project workspace and saved session |
-| Professional productivity | The application supporting professional projects and their relevant documents |
-| Personal Hermes | The main personal Hermes agent and its saved conversation |
-| Work Hermes | The work Hermes agent and its saved conversation |
-| OpenWebUI researcher | The research agent and current working material |
-| OpenWebUI image-prompt writer | The prompt-writing agent, instructions and relevant project material |
+| Professional productivity | Professional projects and relevant documents |
+| Personal Hermes | Personal assistant and saved conversation |
+| Work Hermes | Work assistant and saved conversation |
+| OpenWebUI researcher | Research agent and working material |
+| OpenWebUI image-prompt writer | Prompt-writing agent and project material |
 
-This is a concrete seven-profile example. Three repositories, five bots or one or two workspace agents are other possible selections, not capacity requirements. The underlying DSH SDK path has been demonstrated on controlled coding fixtures; the named `rpstudios` profile and the complete set above have not been qualified as an integrated daily-preparation product.
+These are example profiles, not seven bundled native integrations. The DSH SDK path was demonstrated on controlled coding sessions; the complete daily set above has not been measured as one product workflow. The command adapter runs a supported command you supply. It does not establish that every application can resume its GUI session through its CLI.
 
-## Proposed user flow
+A quiet 05:00 preparation run is a possible use of the CLI through an existing scheduler. No timer is installed. Manual selections and saved sets work now; automatic work-plan selection is a possible later addition.
 
-1. Choose profiles manually and save a set.
-2. Request preparation now, or select a quiet preparation time. **05:00 is an example**, not an automation installed by this project.
-3. For each profile, identify the actual application, project/workspace, model route, saved session where applicable and relevant context sources.
-4. Reuse compatible resident state, resume the saved session, or restore an available committed checkpoint through the supported path. Refresh changed material as needed instead of rebuilding the whole set blindly.
-5. Report what is ready, what needed preparation and what could not be resumed. Finish preparation and release generation slots for active requests.
-6. Open or resume those same applications and workspaces during the day.
+## Preserve the actual application context
 
-Retained dormant contexts occupy cache capacity but do not continuously occupy generation slots. Selection needs headroom for growing conversations, allocation overhead, other work and ad-hoc requests. Filling the pool is not the objective, and adding irrelevant documents to inflate context is not useful preparation.
+Applications retain responsibility for agent loops, tools, retries, transcripts and task checks. DSH keeps the same saved session and original workspace. The helper refuses a workspace mismatch instead of silently moving or replacing the session.
 
-A later extension could read a work plan and suggest likely projects or documents. Manual choices and saved sets come first.
+Cache reuse depends on instructions, tool definitions and ordering, skills, chat formatting, document versions and conversation state. Concatenating repository files into an unrelated request does not automatically warm the next application turn. Prefix caching reuses compatible computation; it cannot make a changed prefix equivalent to the old one.
 
-## Keep the helper thin
+The preparation prompt asks for a short reply without tools or edits. That is an application instruction, not a new permission sandbox; existing application permissions and behavior still apply. Credentials stay in the application's usual configuration or inherited environment. The helper does not store model output or raw application diagnostics in receipts.
 
-Codex, DSH, Hermes and OpenWebUI retain their own agent loops, tools, retries, transcripts and task checks. The proposed helper coordinates preparation and resumption; it does not substitute a generic API loop for those applications.
+## Evidence and useful performance
 
-Cache compatibility depends on what the application actually sends: instructions, tool definitions and ordering, skills, chat formatting, document versions and conversation history. An unrelated request assembled from repository files is not proof that the application's next turn is warm.
+Eight saved DSH sessions were prepared, resumed for checked revisions and measured at approximately 6,151 output tokens/min over the complete 93.501-second window. All 56 frozen checks passed. Those results demonstrate the application path reused by this helper; they predate this helper's packaging and are not a new benchmark of it. See [evidence](evidence.md) and [helper completion checks](CR-001-work-shards-helper.md).
 
-Continue a real conversation using its saved session and original workspace. A change early in the prompt, a tool-schema change or compaction can reduce reuse to the remaining compatible prefix. Restoring a checkpoint also depends on the recorded model/layout identity, committed bytes and available capacity.
+Measure returning-turn responsiveness, checked edits and handoffs, time to a successful outcome including retries, and how many useful contexts remain available while switching projects. A corrected first attempt can still be a useful outcome; include the correction time. Single-stream decode speed does not capture the whole day of tool gaps and warm returns.
 
-The documented implementation does not expose a general prefill-only endpoint, guarantee zero-output requests, pin arbitrary contexts indefinitely or instantly preempt running work. The demonstrated DSH readiness step requested a short explicit reply. A preparation helper must use supported application behaviour and report actual reuse, rather than assume it.
-
-## Demonstrated building block
-
-The recorded DSH exercise used this sequence:
-
-**Prepare actual application state → resume the same saved session and workspace → perform useful tool-driven work → check the result.**
-
-Eight initial coding sessions were kept as preparation. Eight short resumed readiness turns confirmed warm reuse. The subsequent measured revisions used the installed DSH SDK, application loop and native tools; all 56 frozen checks passed. The full measured window was 93.501 seconds at approximately 6,151 output tokens/min. [Evidence and context limits](evidence.md).
-
-The general Work Shards selector and daily scheduler are not needed to explain this result, and this documentation does not make further testing a prerequisite for presenting it.
-
-## What useful performance means
-
-Measure returning-turn responsiveness, checked edits and handoffs, time to a successful outcome including corrections, the number of useful contexts available across project switches, and the intervention required to keep work moving.
-
-A failed first tool call or generation followed by a successful correction can be a good outcome when the complete workflow is faster and more useful. Preserve that correction time in the measurement. Single-stream decode speed and aggregate simultaneous tok/s remain diagnostics; they do not describe a whole day of tool gaps, dormant agents and warm returns.
+[Setup and commands](setup-and-usage.md)

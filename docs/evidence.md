@@ -1,6 +1,6 @@
 # Evidence summary
 
-This document records bounded measurements of the TensorShard serving candidate on 4 November 2026. The serving integration was exercised; the general Work Shards helper remains planned. Exact configuration is in the [recorded recipe](recorded-recipe.yaml), and the application-preparation direction is in [Work Shards](work-shards.md).
+This document records bounded measurements of the adopted TensorShard serving configuration on 4 November 2026. The serving integration was exercised and selected for continued use. The small Work Shards helper now packages profile selection and the DSH resume path; the performance results below predate that packaging. Exact configuration is in the [recorded recipe](recorded-recipe.yaml), and the application-preparation direction is in [Work Shards](work-shards.md).
 
 ## Measured source-project work
 
@@ -15,7 +15,7 @@ The writing and code arms used 0.25-second initial staggering and immediate inde
 
 ## Historical storage evidence
 
-A separate historical NVMe owner-restore measurement on the earlier C8 candidate used a 196,106-token input: cold TTFT 88.3685 s, RAM TTFT 1.2778 s, and disk TTFT 5.1893 s under four active agents (17.03× cold-to-disk). Output hashes matched and the subsequent checked continuation passed. This is a specific first-token comparison, not a 17× end-to-end productivity claim or a universal restore-time guarantee.
+A separate historical NVMe owner-restore measurement on the earlier C8 configuration used a 196,106-token input: cold TTFT 88.3685 s, RAM TTFT 1.2778 s, and disk TTFT 5.1893 s under four active agents (17.03× cold-to-disk). Output hashes matched and the subsequent checked continuation passed. This is a specific first-token comparison, not a 17× end-to-end productivity claim or a universal restore-time guarantee.
 
 ## Boundaries
 

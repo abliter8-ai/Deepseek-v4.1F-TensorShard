@@ -1,10 +1,11 @@
 schema_version: '1.0'
 recipe_id: deepseek-v41-flash-1017-exl3-2.9-ablit__dual-gb10-tp2__tensorfold-ip448-worker-heavy-nvme__v3
 meta:
-  status: draft
+  status: production
+  adopted: '2026-11-04'
   recorded: '2026-11-04'
   intended_use: [coding-agent, tool-calling-agent, long-context-retrieval]
-  provenance: IP-448 approved recipe; descriptive archive only, not a launcher
+  provenance: Owner-selected configuration for continued use; exact serving record, not a launcher
   upstream:
     project: MiaAI-Lab DeepSeek V4.1 Flash 1017 2x DGX Sparks
     commit_url: https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-1017-2x-DGX-Sparks/tree/f424dfe3b14ac9f02fe12f5777c852dba967a79a
@@ -19,7 +20,7 @@ meta:
     canonical_source_manifest_sha256: 59bd2eec1061bd736e584bf1e9b9630b665536c64c079dc9ca93217c6c523323
     canonical_patch_sha256: 57a5d9658c360f5854afeac407710e17d08a3bc5d631580f6b1c37d146c37ed9
 images:
-  candidate:
+  adopted:
     head: sha256:af607e2ef03d2dd3fd842fe221c7a0b2adf3469e43b8a84f18f08689b21559ba
     worker: sha256:c1d4e25033ab1f114999ed866b329e4af02095b16ab63e6dfd6da611f894ece5
   preserved_c12_base:
