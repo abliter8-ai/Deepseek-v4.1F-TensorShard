@@ -1,0 +1,97 @@
+schema_version: '1.0'
+recipe_id: deepseek-v41-flash-1017-exl3-2.9-ablit__dual-gb10-tp2__tensorfold-ip448-worker-heavy-nvme__v3
+meta:
+  status: draft
+  recorded: '2026-11-04'
+  intended_use: [coding-agent, tool-calling-agent, long-context-retrieval]
+  provenance: IP-448 approved recipe; descriptive archive only, not a launcher
+  upstream:
+    project: MiaAI-Lab DeepSeek V4.1 Flash 1017 2x DGX Sparks
+    commit_url: https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-1017-2x-DGX-Sparks/tree/f424dfe3b14ac9f02fe12f5777c852dba967a79a
+    commit: f424dfe3b14ac9f02fe12f5777c852dba967a79a
+    combined_spill_shard_patch_url: https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-1017-2x-DGX-Sparks/blob/f424dfe3b14ac9f02fe12f5777c852dba967a79a/zig/patches/0019-dsv41-spill-kv-shard.patch
+    tensorfold_url: https://github.com/ashhart/TensorFold
+    sehoon_tuned_url: https://github.com/sehoon123/DeepSeek-v4.1-Flash-1017-2x-DGX-Sparks-Tuned/tree/0700221
+  source_hashes:
+    admission_source_sha256: 08fdb385257775a5680597a0fa76584988a6a0613323e0517c26bf1b1fc3df67
+    admission_patch_sha256: 80a1c5ddb8ad80746a6a4decd473a2e446076ab587e51844be111c8035ce2ce3
+    historical_build_tree_sha256: ff9d495b99f4db3d1c72937802d01aa9d5a7674bb0c02a3ea37daee451111cad
+    canonical_source_manifest_sha256: 59bd2eec1061bd736e584bf1e9b9630b665536c64c079dc9ca93217c6c523323
+    canonical_patch_sha256: 57a5d9658c360f5854afeac407710e17d08a3bc5d631580f6b1c37d146c37ed9
+images:
+  candidate:
+    head: sha256:af607e2ef03d2dd3fd842fe221c7a0b2adf3469e43b8a84f18f08689b21559ba
+    worker: sha256:c1d4e25033ab1f114999ed866b329e4af02095b16ab63e6dfd6da611f894ece5
+  preserved_c12_base:
+    head: sha256:9dfae307c34a4998bc90373498383ef42ab1ae6d58316a07c3d835c3f56b72f8
+    worker: sha256:2b48e92364c22feb5b6dbc21ed5ab639e59ebd6a63f8bb9976ab8776865943e3
+engine:
+  name: TensorFold deepseek-v41-zig
+  commit: 629c524a0ea57512a5342abb498d1b7c25353343
+  image: tensorfold-dsv41:ip448-admission-r2
+  model:
+    id: Mia-AiLab/DeepSeek-V4.1-Flash-1017-EXL3-EAQ-v1-2.9-bpw
+    revision: 45ee5d0fd106c94a3d77f721e09cbb2f50e5a16b
+    architecture: moe
+    native_context_tokens: 1048576
+  quantization:
+    weights: Mia EXL3 EAQ v1 2.9 bpw with Keys exl3_wo_b_l10_35_mia29.safetensors
+    kv_cache: fp4
+    overlay: 104 attention tensors in layers 10-35; four drafter tensors retain stock dtypes
+    builtin_speculative_weights: mtp
+  compatibility_identity:
+    engine_id: preserve existing TF_DS_ENGINE_ID
+    recipe_patches: preserve existing TF_DS_RECIPE_PATCHES
+    note: model/overlay identity and cache identity remain separate
+layout:
+  topology: 'dual DGX Spark; tensor_parallel: 2; pipeline_parallel: 1'
+  pool_positions: 4198400
+  owner_blocks: [513, 1537]
+  block_size_tokens: 2048
+  positions_by_owner: {head: 1050624, worker: 3147776}
+  request_window_tokens: 1048576
+  streams: 12
+  prompt_state_cache_gib: 1
+  spill_gib_per_rank: 4
+  spill_staging_mib_per_rank: 128
+  spill_min_free_gib: 50
+  spill_min_tokens: 4096
+  spill_quota: 1
+controls:
+  TF_DS_PAIR: '0'
+  TF_DS_ROUND_ROWS: '48'
+  TF_DS_COPY_ROWS: '48'
+  TF_DS_PREFILL_NEST_TOKENS: '16384'
+  TF_DS_POOL: '4198400'
+  TF_DS_DISPLAY_EMBED: '1'
+  TF_DS_ENGRAM_CACHE_MB: '1024'
+  PROMPT_CACHE_GIB: '1'
+  TF_DS_SPILL_GIB: '4'
+  TF_DS_KV_SHARD: '1'
+  TF_DS_KV_SHARD_BLOCKS: 513,1537
+  TF_DS_STREAMS: '12'
+  TF_DS_WINDOW: '1048576'
+  TF_DS_COPY_MULTI: '15'
+  TF_DS_COPY_SELF_CAP: '15'
+  TF_DS_PREFILL_INTERLEAVE_MS: '250'
+  TF_DS_KV_SHARD_DECODE: fetch
+  TF_DS_KV_SHARD_CARRY: '1'
+  TF_DS_KV_SHARD_TWINS: '1'
+  TF_DS_KV_SHARD_RING: '1'
+  TF_DS_KV_SHARD_OVERLAP: '1'
+  TF_DS_SPILL_DIR: /spill
+  TF_DS_SPILL_MIN_FREE_GIB: '50'
+  TF_DS_SPILL_MIN_TOKENS: '4096'
+  TF_DS_SPILL_QUOTA: '1'
+  TF_DS_SPILL_STAGING_MIB: '128'
+  TF_SPILL_TURNS: '4'
+  TF_SPILL_FLUSH_MS: '60000'
+  MEMGUARD_GIB: '2'
+  MEMGUARD_HARD_GIB: '1'
+  GPU_CLOCKS: default
+readiness_gates:
+  - 'exact greedy controls and both rank identities'
+  - 'owner capacities, spill commit/restore counters and physical read receipts'
+  - 'startup memory floor: 112 GiB available before loading'
+  - 'stop submissions below 2.5 GiB available; retain 2 GiB sustained and 1 GiB hard guards'
+  - 'bounded restore: two restores, four readers, 30-second deadline'

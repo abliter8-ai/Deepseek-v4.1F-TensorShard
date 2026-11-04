@@ -1,0 +1,106 @@
+{
+  "recorded_date": "2026-11-04",
+  "scope": "Curated excerpts for the recorded TensorShard serving candidate; Work Shards is planned.",
+  "thinking_disabled_for_generation_rows": true,
+  "results": {
+    "writing": {
+      "model_calls": 16,
+      "output_tokens": 16416,
+      "wall_s": 158.62177879200317,
+      "output_tok_per_min": 6209.487798592611,
+      "prefix_reuse": 0.9893666631151602,
+      "harness": "custom Python driver",
+      "context": "synthetic histories near 200k tokens",
+      "initial_passed": 8,
+      "revisions_passed": 8,
+      "word_bounds": {
+        "accepted": [
+          650,
+          1200
+        ],
+        "approximate_target": [
+          800,
+          1000
+        ],
+        "within_target": 7,
+        "total": 16
+      }
+    },
+    "code": {
+      "model_calls": 48,
+      "output_tokens": 19433,
+      "wall_s": 185.44785099994624,
+      "output_tok_per_min": 6287.374017617158,
+      "prefix_reuse": 0.9868070540294785,
+      "harness": "custom Python driver",
+      "context": "synthetic histories near 200k tokens",
+      "initial_passed": 8,
+      "revisions_passed": 8,
+      "initial_test_method_executions": 48,
+      "revision_test_method_executions": 56,
+      "initial_source_lines": [
+        125,
+        172
+      ],
+      "algorithm_families": 1
+    },
+    "dsh_warm_revision": {
+      "model_calls": 34,
+      "output_tokens": 9585,
+      "wall_s": 93.5009008339839,
+      "output_tok_per_min": 6150.74287916351,
+      "prefix_reuse": 0.930456987983895,
+      "harness": "installed DSH 0.2.1-rc.5 via SDK session resumption",
+      "context_tokens_min": 27427,
+      "context_tokens_max": 32496,
+      "revisions_passed": 8,
+      "test_method_executions": 56,
+      "setup_excluded": true,
+      "readiness": {
+        "sessions": 8,
+        "wall_s": 9.757487750030123,
+        "prefix_reuse": 0.9523707320563037
+      }
+    },
+    "client_admission": {
+      "engine_streams": 12,
+      "arms": 6,
+      "checked_edits": 72,
+      "completed_handoffs": 72,
+      "pooled_output_tok_per_min": {
+        "admit_8": 4373.47,
+        "admit_12": 4472.15
+      },
+      "checked_tasks_per_min": {
+        "admit_8": 6.568,
+        "admit_12": 6.549
+      },
+      "interpretation": "Client admission limits on one C12 engine; task throughput effectively tied."
+    },
+    "historical_return": {
+      "input_tokens": 196106,
+      "cold_ttft_s": 88.36853929201607,
+      "ram_ttft_s": 1.277828209,
+      "disk_ttft_s": 5.189301042002626,
+      "cold_to_disk_ratio": 17.02898686677722,
+      "disk_background_load": "four active agents"
+    }
+  },
+  "provenance_sha256": {
+    "writing_r2_results": "a3f3b2a3d11b667f4c431d0b4b1d4ded07fb70d9f8b1c3fb8100a4524a013285",
+    "code_r2_results": "e395f954619e446e164c1ad8aa7c17550fd387621954c4ee87608f00c9f95335",
+    "dsh_warm_revision_results": "d9df0af66ebb4cb294c8738459d5056ecbf653fc37f711485ef167fe9fd6cc6c",
+    "dsh_warm_controls": "9d746743be0b4227779ad1ab9fa1e64b1cc3ca02cb27f12554f0e633493079d7",
+    "sequencing_comparison": "a0c0f6dcf007e22bea8eaeb408eba3acacd70abdb719b77234154d91917f24af",
+    "sequencing_matrix": "d9df49c31a2842c77253f3f1a52f2c6fe51a9d30dab7a4586f030b329eb4273b",
+    "historical_return": "f8ba644bfe99436005797b5f7b7d7ae9635685b35af2a752f81637a30554a735"
+  },
+  "boundaries": [
+    "The original writing/code and sequencing runs used custom drivers, not the Codex harness.",
+    "DSH measured revisions only with smaller contexts; rates do not isolate harness overhead.",
+    "Generation timing excludes initial preparation; DSH includes startup, tools, final replies, validation and shutdown.",
+    "Code output counts include intermediate model output and tool arguments, not only final code.",
+    "Checks establish stated fixture outcomes; they are not universal model-quality or all-day performance claims.",
+    "These are curated excerpts, not a complete public raw-transcript archive."
+  ]
+}
